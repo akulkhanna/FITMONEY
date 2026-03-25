@@ -1,0 +1,5 @@
+{
+  "name": "FITMONEY",
+  "description": "Seamlessly log expenses from your iPhone with Apple Shortcuts and automatically sync to Google Sheets.",
+  "requestFramePermissions": []
+}

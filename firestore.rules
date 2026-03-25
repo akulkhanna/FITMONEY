@@ -1,0 +1,96 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {userId} (Matches Firebase Auth UID)
+    // Fields:
+    //   - uid: string (required) - The unique ID of the user.
+    //   - sheetId: string (optional) - The connected Google Sheet ID.
+    //   - budget: number (optional) - The monthly budget.
+    //   - goals: list (optional) - Array of goal objects.
+    //   - envelopes: list (optional) - Array of envelope objects.
+    //   - bills: list (optional) - Array of bill objects.
+    //   - assets: list (optional) - Array of asset objects.
+    //   - liabilities: list (optional) - Array of liability objects.
+    //   - updatedAt: timestamp (optional) - Last update time.
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAuthorizedUser() {
+      return isAuthenticated() && 
+             request.auth.token.email == "akulkhanna81304@gmail.com" && 
+             request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isAuthorizedUser() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthorizedUser();
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidUserConfig(data) {
+      return hasOnlyAllowedFields(['uid', 'sheetId', 'budget', 'goals', 'envelopes', 'bills', 'assets', 'liabilities', 'updatedAt', 'role']) &&
+             data.uid is string && data.uid.size() > 0 &&
+             (!('sheetId' in data) || data.sheetId is string) &&
+             (!('budget' in data) || data.budget is number) &&
+             (!('goals' in data) || data.goals is list) &&
+             (!('envelopes' in data) || data.envelopes is list) &&
+             (!('bills' in data) || data.bills is list) &&
+             (!('assets' in data) || data.assets is list) &&
+             (!('liabilities' in data) || data.liabilities is list) &&
+             (!('updatedAt' in data) || data.updatedAt is timestamp) &&
+             (!('role' in data) || (data.role is string && data.role in ['admin', 'user']));
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      // Users can only read their own config, admins can read all
+      allow read: if isOwner(userId) || isAdmin();
+
+      // Users can create their own config, but cannot set themselves as admin initially
+      allow create: if isOwner(userId) && 
+                      isValidUserConfig(request.resource.data) && 
+                      (request.resource.data.role == 'user' || !('role' in request.resource.data));
+
+      // Users can update their own config, but cannot change their role
+      allow update: if isOwner(userId) && 
+                      isValidUserConfig(request.resource.data) && 
+                      (request.resource.data.role == resource.data.role || !('role' in request.resource.data)) ||
+                      isAdmin();
+
+      // Only admins can delete user configs
+      allow delete: if isAdmin();
+    }
+
+    // Default deny
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}
