@@ -98,24 +98,10 @@ app.get("/auth/callback", async (req, res) => {
     const { tokens } = await oauth2Client.getToken(code as string);
     oauth2Client.setCredentials(tokens);
     
-    // Verify the user email
+    // Verify the user email (Removed hardcoded restriction to allow any user)
     const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
     const userInfo = await oauth2.userinfo.get();
     
-    if (userInfo.data.email !== "akulkhanna81304@gmail.com") {
-      return res.status(403).send(`
-        <html>
-          <body style="background: #0A0A0A; color: white; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0;">
-            <div style="text-align: center; max-width: 400px; padding: 40px; border-radius: 24px; background: #111;">
-              <h1 style="margin: 0 0 16px; font-size: 24px;">Access Denied</h1>
-              <p style="color: #888; margin: 0 0 24px; line-height: 1.5;">This application is restricted to the owner only. Your account (${userInfo.data.email}) is not authorized.</p>
-              <button onclick="window.close()" style="background: white; color: black; border: none; padding: 12px 24px; border-radius: 12px; font-weight: bold; cursor: pointer;">Close Window</button>
-            </div>
-          </body>
-        </html>
-      `);
-    }
-
     // In a real app, you'd store tokens in Firestore
     // For now, we'll send a success message to the parent window
     res.send(`

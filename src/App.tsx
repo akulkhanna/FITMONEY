@@ -103,7 +103,6 @@ function TapSheetApp() {
   const [tokens, setTokens] = useState<any>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
-  const [isAuthorized, setIsAuthorized] = useState(true);
   const [sheetId, setSheetId] = useState(localStorage.getItem('tap_sheet_id') || '');
   const [budget, setBudget] = useState(Number(localStorage.getItem('tap_budget')) || 50000);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'transactions' | 'analytics' | 'goals' | 'budget' | 'ai' | 'setup' | 'settings'>('dashboard');
@@ -136,56 +135,6 @@ function TapSheetApp() {
   const [editingCategory, setEditingCategory] = useState<{ old: string, new: string } | null>(null);
   const [showModal, setShowModal] = useState<'goal' | 'bill' | 'envelope' | 'asset' | 'liability' | null>(null);
   const [modalData, setModalData] = useState<any>({});
-
-  // Default data if empty
-  useEffect(() => {
-    if (goals.length === 0) {
-      const defaultGoals = [
-        { id: '1', icon: '✈️', title: 'Vacation Fund', target: 300000, saved: 216000, color: '#3b82f6' },
-        { id: '2', icon: '🏠', title: 'House Down Payment', target: 5000000, saved: 1200000, color: '#22c55e' },
-        { id: '3', icon: '💻', title: 'New MacBook', target: 250000, saved: 75000, color: '#8b5cf6' }
-      ];
-      setGoals(defaultGoals);
-      localStorage.setItem('tap_goals', JSON.stringify(defaultGoals));
-    }
-    if (envelopes.length === 0) {
-      const defaultEnvelopes = [
-        { id: '1', icon: '🍔', name: 'Food & Dining', budget: 15000, category: 'Food' },
-        { id: '2', icon: '🚕', name: 'Transport', budget: 5000, category: 'Transport' },
-        { id: '3', icon: '🛍️', name: 'Shopping', budget: 10000, category: 'Shopping' },
-        { id: '4', icon: '🎬', name: 'Entertainment', budget: 5000, category: 'Entertainment' }
-      ];
-      setEnvelopes(defaultEnvelopes);
-      localStorage.setItem('tap_envelopes', JSON.stringify(defaultEnvelopes));
-    }
-    if (bills.length === 0) {
-      const defaultBills = [
-        { id: '1', date: '28', month: 'MAR', name: 'Electricity', amount: 2400, status: 'soon' },
-        { id: '2', date: '01', month: 'APR', name: 'Rent', amount: 25000, status: 'paid' },
-        { id: '3', date: '05', month: 'APR', name: 'Internet', amount: 1200, status: 'pending' }
-      ];
-      setBills(defaultBills);
-      localStorage.setItem('tap_bills', JSON.stringify(defaultBills));
-    }
-    if (assets.length === 0) {
-      const defaultAssets = [
-        { id: '1', name: 'Savings Account', value: 500000 },
-        { id: '2', name: 'Mutual Funds', value: 1200000 },
-        { id: '3', name: 'Gold', value: 800000 }
-      ];
-      setAssets(defaultAssets);
-      localStorage.setItem('tap_assets', JSON.stringify(defaultAssets));
-    }
-    if (liabilities.length === 0) {
-      const defaultLiabilities = [
-        { id: '1', name: 'Personal Loan', value: 150000 },
-        { id: '2', name: 'Credit Card', value: 45000 }
-      ];
-      setLiabilities(defaultLiabilities);
-      localStorage.setItem('tap_liabilities', JSON.stringify(defaultLiabilities));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const handleSendMessage = async (textOverride?: string) => {
     const messageText = textOverride || aiInput;
@@ -379,17 +328,9 @@ function TapSheetApp() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        if (user.email !== "akulkhanna81304@gmail.com") {
-          setIsAuthorized(false);
-          auth.signOut();
-          setUser(null);
-        } else {
-          setUser(user);
-          setIsAuthorized(true);
-        }
+        setUser(user);
       } else {
         setUser(null);
-        // Do not reset isAuthorized to true if they were just kicked out
       }
       setIsAuthReady(true);
     });
@@ -709,53 +650,96 @@ function TapSheetApp() {
     );
   }
 
-  if (!isAuthorized) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0A0A0A] p-6">
-        <div className="w-full max-w-md space-y-8 text-center">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-red-500/10 text-red-500 shadow-2xl shadow-red-500/10">
-            <ShieldAlert size={40} />
-          </div>
-          <div className="space-y-4">
-            <h1 className="text-4xl font-black tracking-tighter text-white">Access Denied</h1>
-            <p className="text-gray-400">This is a private instance of TapSheet. Access is restricted to the owner only.</p>
-          </div>
-          <button 
-            onClick={() => setIsAuthorized(true)}
-            className="flex w-full items-center justify-center gap-3 rounded-2xl bg-white px-8 py-4 font-bold text-black transition-all hover:scale-[1.02] active:scale-95"
-          >
-            Try Another Account
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   if (!tokens || !user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0A0A0A] p-6">
-        <div className="w-full max-w-md space-y-8 text-center">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-white text-black shadow-2xl shadow-white/10">
-            <Zap size={40} fill="currentColor" />
-          </div>
-          <div className="space-y-4">
-            <h1 className="text-5xl font-black tracking-tighter text-white">TapSheet</h1>
-            <p className="text-gray-400">The free, AI-powered finance ledger that lives in your Google Sheets.</p>
+      <div className="min-h-screen bg-[#0A0A0A] text-white font-sans selection:bg-white selection:text-black">
+        {/* Navigation */}
+        <nav className="flex items-center justify-between p-6 lg:px-12">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-black">
+              <Zap size={20} fill="currentColor" />
+            </div>
+            <span className="text-xl font-black tracking-tight">TapSheet</span>
           </div>
           <button 
             onClick={handleConnect}
-            className="group relative flex w-full items-center justify-center gap-3 overflow-hidden rounded-2xl bg-white px-8 py-4 font-bold text-black transition-all hover:scale-[1.02] active:scale-95"
+            className="rounded-full bg-white/10 px-6 py-2 text-sm font-bold transition-all hover:bg-white hover:text-black"
           >
-            <LogIn size={20} />
-            {!user ? "Step 1: Sign in with Google" : "Step 2: Connect Google Sheets"}
-            <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-black/5 to-transparent transition-transform group-hover:translate-x-full" />
+            {!user ? "Sign In" : "Connect Sheets"}
           </button>
-          <div className="flex items-center justify-center gap-6 text-xs font-medium uppercase tracking-widest text-gray-500">
-            <span className="flex items-center gap-1"><ShieldCheck size={12} /> Secure</span>
-            <span className="flex items-center gap-1"><Zap size={12} /> Real-time</span>
-            <span className="flex items-center gap-1"><Table size={12} /> Google Sheets</span>
+        </nav>
+
+        {/* Hero Section */}
+        <main className="mx-auto max-w-6xl px-6 pt-20 pb-32 lg:pt-32">
+          <div className="grid gap-16 lg:grid-cols-2 lg:gap-8 items-center">
+            <div className="space-y-8">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold uppercase tracking-widest text-gray-300">
+                <Sparkles size={14} className="text-yellow-500" />
+                <span>AI-Powered Finance</span>
+              </div>
+              <h1 className="text-6xl font-black tracking-tighter sm:text-7xl lg:text-8xl leading-[0.9]">
+                Own your <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-gray-100 to-gray-500">data.</span>
+              </h1>
+              <p className="max-w-md text-lg text-gray-400 leading-relaxed">
+                The intelligent finance ledger that lives entirely in your Google Sheets. Real-time tracking, AI insights, and complete data ownership.
+              </p>
+              
+              <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                <button 
+                  onClick={handleConnect}
+                  className="group relative flex items-center justify-center gap-3 overflow-hidden rounded-2xl bg-white px-8 py-4 font-bold text-black transition-all hover:scale-[1.02] active:scale-95"
+                >
+                  <LogIn size={20} />
+                  {!user ? "Step 1: Sign in with Google" : "Step 2: Connect Google Sheets"}
+                  <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-black/5 to-transparent transition-transform group-hover:translate-x-full" />
+                </button>
+              </div>
+
+              <div className="flex items-center gap-6 text-xs font-bold uppercase tracking-widest text-gray-500 pt-8">
+                <span className="flex items-center gap-2"><ShieldCheck size={14} /> Secure</span>
+                <span className="flex items-center gap-2"><Table size={14} /> Google Sheets</span>
+                <span className="flex items-center gap-2"><Zap size={14} /> Real-time</span>
+              </div>
+            </div>
+
+            {/* Feature Grid */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-4">
+                <div className="rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-sm transition-all hover:bg-white/10">
+                  <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500/20 text-blue-400">
+                    <Table size={24} />
+                  </div>
+                  <h3 className="mb-2 text-xl font-bold">Your Data, Your Rules</h3>
+                  <p className="text-sm text-gray-400 leading-relaxed">Everything syncs directly to your personal Google Sheet. No vendor lock-in, export anytime.</p>
+                </div>
+                <div className="rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-sm transition-all hover:bg-white/10">
+                  <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-green-500/20 text-green-400">
+                    <Target size={24} />
+                  </div>
+                  <h3 className="mb-2 text-xl font-bold">Goal Tracking</h3>
+                  <p className="text-sm text-gray-400 leading-relaxed">Set savings goals, track envelopes, and monitor your net worth in real-time.</p>
+                </div>
+              </div>
+              <div className="space-y-4 sm:mt-12">
+                <div className="rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-sm transition-all hover:bg-white/10">
+                  <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-500/20 text-purple-400">
+                    <Sparkles size={24} />
+                  </div>
+                  <h3 className="mb-2 text-xl font-bold">AI Advisor</h3>
+                  <p className="text-sm text-gray-400 leading-relaxed">Get personalized financial insights and chat with your data using Gemini AI.</p>
+                </div>
+                <div className="rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-sm transition-all hover:bg-white/10">
+                  <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-500/20 text-orange-400">
+                    <TrendingUp size={24} />
+                  </div>
+                  <h3 className="mb-2 text-xl font-bold">Smart Analytics</h3>
+                  <p className="text-sm text-gray-400 leading-relaxed">Beautiful charts and automatic categorization to understand your spending habits.</p>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
+        </main>
       </div>
     );
   }
@@ -824,6 +808,30 @@ function TapSheetApp() {
         <div className="p-6 lg:p-10 max-w-6xl mx-auto">
           {activeTab === 'dashboard' && (
             <div className="space-y-8">
+              {!sheetId && (
+                <div className="rounded-[2rem] bg-blue-500 p-8 text-white shadow-xl lg:p-12 relative overflow-hidden">
+                  <div className="relative z-10 max-w-2xl">
+                    <div className="inline-flex items-center gap-2 rounded-full bg-white/20 px-4 py-2 text-xs font-bold uppercase tracking-widest text-white mb-6">
+                      <Sparkles size={14} />
+                      <span>Welcome to TapSheet</span>
+                    </div>
+                    <h2 className="text-4xl font-black tracking-tight mb-4">Let's connect your data.</h2>
+                    <p className="text-blue-100 text-lg mb-8 leading-relaxed">
+                      To start tracking your finances, you need to connect a Google Sheet. This is where all your data will be securely stored and analyzed.
+                    </p>
+                    <button 
+                      onClick={() => setActiveTab('setup')}
+                      className="rounded-2xl bg-white px-8 py-4 font-bold text-blue-600 transition-all hover:scale-[1.02] active:scale-95 shadow-lg"
+                    >
+                      Go to Setup Guide
+                    </button>
+                  </div>
+                  <div className="absolute -right-20 -top-20 opacity-10">
+                    <Table size={400} />
+                  </div>
+                </div>
+              )}
+
               {/* Hero Banner */}
               <div className="relative overflow-hidden rounded-[2rem] bg-black p-8 text-white shadow-2xl lg:p-12">
                 <div className="relative z-10 flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
@@ -1116,7 +1124,19 @@ function TapSheetApp() {
                       ))}
                       {filteredTransactions.length === 0 && (
                         <tr>
-                          <td colSpan={4} className="px-8 py-12 text-center text-gray-400 italic text-sm">No transactions match your filters.</td>
+                          <td colSpan={4} className="px-8 py-16 text-center text-gray-400">
+                            <div className="flex flex-col items-center justify-center gap-3">
+                              <div className="h-16 w-16 rounded-full bg-gray-50 flex items-center justify-center">
+                                <List size={24} className="text-gray-300" />
+                              </div>
+                              <p className="text-sm font-bold text-gray-500">No transactions found</p>
+                              <p className="text-xs max-w-xs mx-auto">
+                                {transactions.length === 0 
+                                  ? "Your connected sheet doesn't have any transactions yet, or they haven't synced." 
+                                  : "Try adjusting your filters to see more results."}
+                              </p>
+                            </div>
+                          </td>
                         </tr>
                       )}
                     </tbody>
@@ -1238,17 +1258,31 @@ function TapSheetApp() {
                     </button>
                   </div>
                   <div className="grid gap-6 sm:grid-cols-2">
-                    {goals.map(goal => (
-                      <GoalCard 
-                        key={goal.id} 
-                        icon={goal.icon} 
-                        title={goal.title} 
-                        target={goal.target} 
-                        saved={goal.saved} 
-                        color={goal.color} 
-                        onClick={() => { setModalData(goal); setShowModal('goal'); }}
-                      />
-                    ))}
+                    {goals.length === 0 ? (
+                      <div className="col-span-full flex flex-col items-center justify-center rounded-[2rem] border-2 border-dashed border-gray-200 bg-gray-50/50 p-12 text-center">
+                        <Target size={32} className="mb-4 text-gray-300" />
+                        <p className="text-sm font-bold text-gray-500">No savings goals yet</p>
+                        <p className="mb-6 text-xs text-gray-400">Set a goal to start tracking your progress.</p>
+                        <button 
+                          onClick={() => { setModalData({}); setShowModal('goal'); }}
+                          className="rounded-xl bg-blue-500 px-6 py-3 text-xs font-bold text-white transition-all hover:bg-blue-600"
+                        >
+                          Create Goal
+                        </button>
+                      </div>
+                    ) : (
+                      goals.map(goal => (
+                        <GoalCard 
+                          key={goal.id} 
+                          icon={goal.icon} 
+                          title={goal.title} 
+                          target={goal.target} 
+                          saved={goal.saved} 
+                          color={goal.color} 
+                          onClick={() => { setModalData(goal); setShowModal('goal'); }}
+                        />
+                      ))
+                    )}
                   </div>
                 </div>
 
@@ -1262,12 +1296,16 @@ function TapSheetApp() {
                           <button onClick={() => { setModalData({}); setShowModal('asset'); }} className="text-[10px] font-bold text-gray-400">+</button>
                         </div>
                         <div className="space-y-3">
-                          {assets.map(a => (
-                            <div key={a.id} className="flex items-center justify-between text-sm">
-                              <span className="font-bold text-gray-600">{a.name}</span>
-                              <span className="font-black">₹{a.value.toLocaleString()}</span>
-                            </div>
-                          ))}
+                          {assets.length === 0 ? (
+                            <p className="text-xs text-gray-400 italic">No assets added yet.</p>
+                          ) : (
+                            assets.map(a => (
+                              <div key={a.id} className="flex items-center justify-between text-sm">
+                                <span className="font-bold text-gray-600">{a.name}</span>
+                                <span className="font-black">₹{a.value.toLocaleString()}</span>
+                              </div>
+                            ))
+                          )}
                         </div>
                       </div>
                       <div className="pt-6 border-t border-gray-50">
@@ -1276,12 +1314,16 @@ function TapSheetApp() {
                           <button onClick={() => { setModalData({}); setShowModal('liability'); }} className="text-[10px] font-bold text-gray-400">+</button>
                         </div>
                         <div className="space-y-3">
-                          {liabilities.map(l => (
-                            <div key={l.id} className="flex items-center justify-between text-sm">
-                              <span className="font-bold text-gray-600">{l.name}</span>
-                              <span className="font-black text-red-500">₹{l.value.toLocaleString()}</span>
-                            </div>
-                          ))}
+                          {liabilities.length === 0 ? (
+                            <p className="text-xs text-gray-400 italic">No liabilities added yet.</p>
+                          ) : (
+                            liabilities.map(l => (
+                              <div key={l.id} className="flex items-center justify-between text-sm">
+                                <span className="font-bold text-gray-600">{l.name}</span>
+                                <span className="font-black text-red-500">₹{l.value.toLocaleString()}</span>
+                              </div>
+                            ))
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1300,16 +1342,30 @@ function TapSheetApp() {
                     <button onClick={() => { setModalData({}); setShowModal('envelope'); }} className="text-xs font-black uppercase tracking-widest text-blue-500">+ Add</button>
                   </div>
                   <div className="space-y-6">
-                    {envelopeStats.map(env => (
-                      <EnvelopeItem 
-                        key={env.id} 
-                        icon={env.icon} 
-                        name={env.name} 
-                        budget={env.budget} 
-                        spent={env.spent} 
-                        onClick={() => { setModalData(env); setShowModal('envelope'); }}
-                      />
-                    ))}
+                    {envelopeStats.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50/50 p-8 text-center">
+                        <Wallet size={24} className="mb-3 text-gray-300" />
+                        <p className="text-sm font-bold text-gray-500">No envelopes yet</p>
+                        <p className="mb-4 text-xs text-gray-400">Create envelopes to budget your spending.</p>
+                        <button 
+                          onClick={() => { setModalData({}); setShowModal('envelope'); }}
+                          className="rounded-lg bg-blue-500 px-4 py-2 text-xs font-bold text-white transition-all hover:bg-blue-600"
+                        >
+                          Create Envelope
+                        </button>
+                      </div>
+                    ) : (
+                      envelopeStats.map(env => (
+                        <EnvelopeItem 
+                          key={env.id} 
+                          icon={env.icon} 
+                          name={env.name} 
+                          budget={env.budget} 
+                          spent={env.spent} 
+                          onClick={() => { setModalData(env); setShowModal('envelope'); }}
+                        />
+                      ))
+                    )}
                   </div>
 
                   {/* Interactive Reallocation */}
@@ -1365,17 +1421,31 @@ function TapSheetApp() {
                       <button onClick={() => { setModalData({}); setShowModal('bill'); }} className="text-xs font-black uppercase tracking-widest text-blue-500">+ Add</button>
                     </div>
                     <div className="space-y-4">
-                      {bills.map(bill => (
-                        <BillItem 
-                          key={bill.id} 
-                          date={bill.date} 
-                          month={bill.month} 
-                          name={bill.name} 
-                          amount={bill.amount} 
-                          status={bill.status} 
-                          onClick={() => { setModalData(bill); setShowModal('bill'); }}
-                        />
-                      ))}
+                      {bills.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50/50 p-8 text-center">
+                          <Calendar size={24} className="mb-3 text-gray-300" />
+                          <p className="text-sm font-bold text-gray-500">No upcoming bills</p>
+                          <p className="mb-4 text-xs text-gray-400">Add bills to keep track of your recurring expenses.</p>
+                          <button 
+                            onClick={() => { setModalData({}); setShowModal('bill'); }}
+                            className="rounded-lg bg-blue-500 px-4 py-2 text-xs font-bold text-white transition-all hover:bg-blue-600"
+                          >
+                            Add Bill
+                          </button>
+                        </div>
+                      ) : (
+                        bills.map(bill => (
+                          <BillItem 
+                            key={bill.id} 
+                            date={bill.date} 
+                            month={bill.month} 
+                            name={bill.name} 
+                            amount={bill.amount} 
+                            status={bill.status} 
+                            onClick={() => { setModalData(bill); setShowModal('bill'); }}
+                          />
+                        ))
+                      )}
                     </div>
                   </div>
                 </div>
