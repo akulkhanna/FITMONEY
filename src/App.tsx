@@ -521,16 +521,17 @@ function TapSheetApp() {
 
   const handleConnect = async () => {
     try {
-      // Open popup immediately to bypass popup blocker
-      const authWindow = window.open('', 'oauth_popup', 'width=600,height=700');
-      
       // 1. Firebase Auth (only if not already signed in)
       if (!user) {
         const provider = new GoogleAuthProvider();
         await signInWithPopup(auth, provider);
+        return; // Return early so user can click again for Step 2
       }
 
       // 2. Google Sheets OAuth
+      // Open popup immediately to bypass popup blocker
+      const authWindow = window.open('', 'oauth_popup', 'width=600,height=700');
+      
       const res = await fetch('/api/auth/url');
       const data = await res.json();
       
@@ -540,7 +541,7 @@ function TapSheetApp() {
         return;
       }
       
-      if (authWindow) {
+      if (authWindow && !authWindow.closed) {
         authWindow.location.href = data.url;
       } else {
         window.open(data.url, 'oauth_popup', 'width=600,height=700');
@@ -746,7 +747,7 @@ function TapSheetApp() {
             className="group relative flex w-full items-center justify-center gap-3 overflow-hidden rounded-2xl bg-white px-8 py-4 font-bold text-black transition-all hover:scale-[1.02] active:scale-95"
           >
             <LogIn size={20} />
-            Connect with Google
+            {!user ? "Step 1: Sign in with Google" : "Step 2: Connect Google Sheets"}
             <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-black/5 to-transparent transition-transform group-hover:translate-x-full" />
           </button>
           <div className="flex items-center justify-center gap-6 text-xs font-medium uppercase tracking-widest text-gray-500">
