@@ -378,12 +378,18 @@ function TapSheetApp() {
   // Firebase Auth & Firestore Sync
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user && user.email !== "akulkhanna81304@gmail.com") {
-        setIsAuthorized(false);
-        auth.signOut();
+      if (user) {
+        if (user.email !== "akulkhanna81304@gmail.com") {
+          setIsAuthorized(false);
+          auth.signOut();
+          setUser(null);
+        } else {
+          setUser(user);
+          setIsAuthorized(true);
+        }
       } else {
-        setUser(user);
-        setIsAuthorized(true);
+        setUser(null);
+        // Do not reset isAuthorized to true if they were just kicked out
       }
       setIsAuthReady(true);
     });
@@ -515,16 +521,33 @@ function TapSheetApp() {
 
   const handleConnect = async () => {
     try {
-      // 1. Firebase Auth
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      // Open popup immediately to bypass popup blocker
+      const authWindow = window.open('', 'oauth_popup', 'width=600,height=700');
+      
+      // 1. Firebase Auth (only if not already signed in)
+      if (!user) {
+        const provider = new GoogleAuthProvider();
+        await signInWithPopup(auth, provider);
+      }
 
       // 2. Google Sheets OAuth
       const res = await fetch('/api/auth/url');
       const data = await res.json();
-      window.open(data.url, 'oauth_popup', 'width=600,height=700');
-    } catch (error) {
+      
+      if (data.error) {
+        if (authWindow) authWindow.close();
+        alert(`Configuration Error: ${data.error}\n${data.details || ''}`);
+        return;
+      }
+      
+      if (authWindow) {
+        authWindow.location.href = data.url;
+      } else {
+        window.open(data.url, 'oauth_popup', 'width=600,height=700');
+      }
+    } catch (error: any) {
       console.error(error);
+      alert(`Authentication failed: ${error.message || 'Unknown error'}`);
     }
   };
 
